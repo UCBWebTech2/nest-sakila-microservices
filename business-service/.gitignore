@@ -1,0 +1,71 @@
+# See http://help.github.com/ignore-files/ for more about ignoring files.
+
+# ---------------------------------------------------------------------------
+# Plantilla oficial de NestJS (nest new / @nestjs/schematics y typescript-starter)
+# ---------------------------------------------------------------------------
+
+# project files
+.env
+
+# compiled output
+/dist
+/tmp
+/out-tsc
+/*.tsbuildinfo
+
+# dependencies
+/node_modules
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# ---------------------------------------------------------------------------
+# Adicionales de este proyecto
+# ---------------------------------------------------------------------------
+
+# Variables de entorno: el .env real se copia de .env.example y no se sube
+# (puede tener credenciales o el JWT_SECRET). El .env.example sí se versiona.
+.env.*
+!.env.example
+
+# Pruebas y cobertura (Vitest)
+/coverage
+/.nyc_output
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Archivos temporales y de datos de ejecución
+.temp
+.tmp
+pids
+*.pid
+*.pid.lock
+
+# Reportes de diagnóstico de Node (https://nodejs.org/api/report.html)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Se regenera al arrancar (GraphQL code-first): no se versiona
+/src/schema.gql

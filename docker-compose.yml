@@ -1,0 +1,190 @@
+# Ecosistema completo: base de datos (PostgreSQL), RabbitMQ y los 5 servicios.
+#
+# Es independiente de los .env de cada servicio (esos son solo para correr un servicio fuera de
+# Docker): toda la configuración y las conexiones entre servicios están escritas aquí. Para levantarlo
+# no hay que crear ningún archivo:
+#
+#   docker compose up -d --build
+#
+# Valores opcionales que se pueden cambiar sin editar este archivo (variables de entorno, o un archivo
+# .env junto a este compose; ver .env.example):
+#   DB_PASSWORD  contraseña de PostgreSQL (por defecto: postgres)
+#   JWT_SECRET   clave con la que el gateway firma los tokens
+
+# --- Red -------------------------------------------------------------------------------------------
+# Una red propia que une a todos los contenedores. Dentro de ella cada servicio se encuentra por el
+# nombre de su servicio (db, rabbitmq, business-service, ...), y siempre por su puerto interno.
+networks:
+  sakila-net:
+    name: nest-sakila-network
+    driver: bridge
+
+# --- Configuración compartida ------------------------------------------------------------------------
+# Conexión a la base de datos de los cuatro servicios que la usan. Dentro de la red la base es `db`,
+# en su puerto interno 5432 (el 5433 del host es solo para entrar desde fuera; ver el servicio `db`).
+x-db-env: &db-env
+  DB_TYPE:     postgres
+  DB_HOST:     db
+  DB_PORT:     "5432"
+  DB_USER:     postgres
+  DB_PASSWORD: ${DB_PASSWORD:-postgres}
+  DB_NAME:     sakila
+  DB_LOGS:     "false"
+
+# NODE_ENV=development mantiene activo el Swagger del gateway (en production se desactiva). Los
+# microservicios no tienen Swagger: cada uno se prueba con su propio protocolo (ver su README).
+x-app-env: &app-env
+  NODE_ENV:     development
+  API_PREFIX:   api
+  CORS_ORIGINS: "*"
+
+# Los puertos se publican solo en 127.0.0.1: se pueden probar desde esta máquina, pero no quedan
+# abiertos a otros equipos de la red (los servicios no tienen autenticación propia, y la base de
+# datos de ejemplo tiene una contraseña por defecto). Para abrirlos a la red, quita el "127.0.0.1:".
+
+services:
+  # --- Infraestructura ---------------------------------------------------------------------------
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    networks: [sakila-net]
+    environment:
+      POSTGRES_DB:       sakila
+      POSTGRES_USER:     postgres
+      # PostgreSQL solo lee la contraseña la primera vez que crea el volumen. Para cambiarla después,
+      # recrea el volumen (`docker compose down -v`) o usa ALTER USER.
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      # Puerto 5433 del host (no el 5432) para no chocar con un PostgreSQL ya instalado en la máquina.
+      - "127.0.0.1:5433:5432"
+    volumes:
+      # postgres:18 guarda los datos por versión mayor bajo /var/lib/postgresql (montar en .../data,
+      # como en la 17 y anteriores, hace que initdb se niegue a arrancar).
+      - db_data:/var/lib/postgresql
+      # Se cargan una sola vez, en orden, solo en el primer arranque (volumen vacío): el esquema
+      # oficial de Sakila, sus datos, y el único ajuste (ensanchar staff.password).
+      - ./db/postgres-sakila-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./db/postgres-sakila-insert-data.sql:/docker-entrypoint-initdb.d/02-insert-data.sql:ro
+      - ./db/business-service.sql:/docker-entrypoint-initdb.d/03-business-service.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sakila"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    restart: unless-stopped
+    networks: [sakila-net]
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "127.0.0.1:5672:5672"     # AMQP (lo usan customer-service y api-gateway)
+      - "127.0.0.1:15672:15672"   # consola web: http://localhost:15672 (guest / guest)
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- Microservicios ------------------------------------------------------------------------------
+  business-service:                                  # GraphQL
+    build: ./business-service
+    restart: unless-stopped
+    networks: [sakila-net]
+    environment:
+      <<: [*app-env, *db-env]
+      PORT: "3001"
+    ports:
+      - "127.0.0.1:3001:3001"                        # http://localhost:3001/graphql
+    depends_on:
+      db:
+        condition: service_healthy
+
+  customer-service:                                  # gRPC (customer, address) + RabbitMQ (city, country)
+    build: ./customer-service
+    restart: unless-stopped
+    networks: [sakila-net]
+    environment:
+      <<: [*app-env, *db-env]
+      PORT:           "3002"                         # HTTP: solo /api/health
+      GRPC_URL:       0.0.0.0:50051
+      RABBITMQ_URL:   amqp://guest:guest@rabbitmq:5672
+      RABBITMQ_QUEUE: customer_queue
+    ports:
+      - "127.0.0.1:3002:3002"                        # health
+      - "127.0.0.1:50051:50051"                      # gRPC
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  inventory-service:                                 # SOAP
+    build: ./inventory-service
+    restart: unless-stopped
+    networks: [sakila-net]
+    environment:
+      <<: [*app-env, *db-env]
+      PORT: "3003"
+    ports:
+      - "127.0.0.1:3003:3003"                        # http://localhost:3003/soap?wsdl
+    depends_on:
+      db:
+        condition: service_healthy
+
+  reporting-service:                                 # WebSocket (Socket.io)
+    build: ./reporting-service
+    restart: unless-stopped
+    networks: [sakila-net]
+    environment:
+      <<: [*app-env, *db-env]
+      PORT:                "3004"
+      WEBSOCKET_NAMESPACE: reports
+    ports:
+      - "127.0.0.1:3004:3004"                        # ws://localhost:3004/reports
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # --- Punto de entrada ----------------------------------------------------------------------------
+  api-gateway:                                       # REST + Swagger + JWT
+    build: ./api-gateway
+    restart: unless-stopped
+    networks: [sakila-net]
+    environment:
+      <<: *app-env
+      PORT:                "3000"
+      JWT_TIME_EXPIRE:     15m
+      # Solo para desarrollo. Cámbiala (variable JWT_SECRET) si expones esto fuera de tu máquina.
+      JWT_SECRET:          ${JWT_SECRET:-dev-only-secret-change-me-before-exposing-this-gateway-anywhere}
+      WEBSOCKET_NAMESPACE: app
+      # Dónde está cada microservicio, por el nombre de su servicio dentro de la red.
+      BUSINESS_SERVICE_GRAPHQL_URL:    http://business-service:3001/graphql
+      INVENTORY_SERVICE_WSDL_URL:      http://inventory-service:3003/soap?wsdl
+      REPORTING_SERVICE_WS_URL:        http://reporting-service:3004
+      CUSTOMER_SERVICE_GRPC_URL:       customer-service:50051
+      CUSTOMER_SERVICE_RABBITMQ_URL:   amqp://guest:guest@rabbitmq:5672
+      CUSTOMER_SERVICE_RABBITMQ_QUEUE: customer_queue
+      # Health de cada microservicio (solo informativo; ver GET /api/health del gateway).
+      BUSINESS_SERVICE_HEALTH_URL:     http://business-service:3001/api/health
+      CUSTOMER_SERVICE_HEALTH_URL:     http://customer-service:3002/api/health
+      INVENTORY_SERVICE_HEALTH_URL:    http://inventory-service:3003/api/health
+      REPORTING_SERVICE_HEALTH_URL:    http://reporting-service:3004/api/health
+    ports:
+      - "127.0.0.1:3000:3000"                        # http://localhost:3000/api/docs
+    depends_on:
+      business-service:
+        condition: service_healthy
+      customer-service:
+        condition: service_healthy
+      inventory-service:
+        condition: service_healthy
+      reporting-service:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+volumes:
+  db_data:

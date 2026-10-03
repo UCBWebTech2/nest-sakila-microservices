@@ -1,0 +1,116 @@
+syntax = "proto3";
+
+package customer;
+
+// customer + address — the gRPC half of customer-service (cities/countries go over RabbitMQ).
+// Field names are snake_case here; @nestjs/microservices' proto-loader converts them to camelCase
+// on the JS side (keepCase: false by default), so handlers and the gateway see `firstName`.
+// Timestamps travel as ISO-8601 strings.
+
+message PaginationRequest {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+message PaginationMeta {
+  int32 page = 1;
+  int32 limit = 2;
+  int32 total = 3;
+  int32 pages = 4;
+}
+
+message ById {
+  int32 id = 1;
+}
+
+message Empty {}
+
+// -- customer ---------------------------------------------------------------
+
+message Customer {
+  int32 id = 1;
+  int32 store_id = 2;
+  string first_name = 3;
+  string last_name = 4;
+  string email = 5;
+  int32 address_id = 6;
+  bool active = 7;
+  string create_date = 8;
+  string last_update = 9;
+}
+
+message ListCustomersResponse {
+  repeated Customer data = 1;
+  PaginationMeta meta = 2;
+}
+
+message CreateCustomerRequest {
+  int32 store_id = 1;
+  string first_name = 2;
+  string last_name = 3;
+  optional string email = 4;
+  int32 address_id = 5;
+}
+
+message UpdateCustomerRequest {
+  int32 id = 1;
+  optional int32 store_id = 2;
+  optional string first_name = 3;
+  optional string last_name = 4;
+  optional string email = 5;
+  optional int32 address_id = 6;
+  optional bool active = 7;
+}
+
+service CustomersService {
+  rpc List (PaginationRequest) returns (ListCustomersResponse) {}
+  rpc FindOne (ById) returns (Customer) {}
+  rpc Create (CreateCustomerRequest) returns (Customer) {}
+  rpc Update (UpdateCustomerRequest) returns (Customer) {}
+  rpc Remove (ById) returns (Empty) {}
+}
+
+// -- address ----------------------------------------------------------------
+
+message Address {
+  int32 id = 1;
+  string address = 2;
+  string address2 = 3;
+  string district = 4;
+  int32 city_id = 5;
+  string postal_code = 6;
+  string phone = 7;
+  string last_update = 8;
+}
+
+message ListAddressesResponse {
+  repeated Address data = 1;
+  PaginationMeta meta = 2;
+}
+
+message CreateAddressRequest {
+  string address = 1;
+  optional string address2 = 2;
+  string district = 3;
+  int32 city_id = 4;
+  optional string postal_code = 5;
+  string phone = 6;
+}
+
+message UpdateAddressRequest {
+  int32 id = 1;
+  optional string address = 2;
+  optional string address2 = 3;
+  optional string district = 4;
+  optional int32 city_id = 5;
+  optional string postal_code = 6;
+  optional string phone = 7;
+}
+
+service AddressesService {
+  rpc List (PaginationRequest) returns (ListAddressesResponse) {}
+  rpc FindOne (ById) returns (Address) {}
+  rpc Create (CreateAddressRequest) returns (Address) {}
+  rpc Update (UpdateAddressRequest) returns (Address) {}
+  rpc Remove (ById) returns (Empty) {}
+}

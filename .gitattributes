@@ -1,0 +1,7 @@
+# Always check files out with LF line endings, whatever the operating system or the user's
+# core.autocrlf setting. On Windows, CRLF would otherwise leak into the SQL scripts mounted into the
+# database container, the Dockerfiles and the .env files.
+* text=auto eol=lf
+
+# Binary files: never touch them.
+*.png binary

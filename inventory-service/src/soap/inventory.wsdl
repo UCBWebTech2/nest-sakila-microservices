@@ -1,0 +1,552 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions name="InventoryService"
+    targetNamespace="http://inventory-service.sakila/wsdl"
+    xmlns:tns="http://inventory-service.sakila/wsdl"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+    xmlns="http://schemas.xmlsoap.org/wsdl/">
+
+    <types>
+        <xsd:schema targetNamespace="http://inventory-service.sakila/wsdl">
+
+            <!-- ================= Shared ================= -->
+            <xsd:complexType name="PaginationMeta">
+                <xsd:sequence>
+                    <xsd:element name="page" type="xsd:int"/>
+                    <xsd:element name="limit" type="xsd:int"/>
+                    <xsd:element name="total" type="xsd:int"/>
+                    <xsd:element name="pages" type="xsd:int"/>
+                </xsd:sequence>
+            </xsd:complexType>
+
+            <!--
+                Every operation gets its own uniquely-named request element, even ones that are
+                structurally identical (e.g. GetFilmRequest/DeleteFilmRequest are both just {id}).
+                Document/literal "wrapped" SOAP dispatches on the top-level request element name —
+                sharing one generic element (e.g. a single IdRequest for every Get/Delete op) makes
+                dispatch ambiguous: the server can no longer tell which operation was actually
+                called from the body alone. Confirmed empirically, not just from the spec — an
+                earlier shared-element version of this WSDL ran the right handler but a wrong one
+                got appended too, visible in the response wrapper tag.
+            -->
+
+            <!-- Shared is fine here — it's a response (output) element, dispatch doesn't depend
+                 on it, only on each operation's distinct *Request input (see note above). -->
+            <xsd:element name="DeleteResponse">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="success" type="xsd:boolean"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <!-- ================= Film ================= -->
+            <xsd:complexType name="Film">
+                <xsd:sequence>
+                    <xsd:element name="id" type="xsd:int"/>
+                    <xsd:element name="title" type="xsd:string"/>
+                    <xsd:element name="description" type="xsd:string" minOccurs="0" nillable="true"/>
+                    <xsd:element name="releaseYear" type="xsd:int" minOccurs="0" nillable="true"/>
+                    <xsd:element name="languageId" type="xsd:int"/>
+                    <xsd:element name="originalLanguageId" type="xsd:int" minOccurs="0" nillable="true"/>
+                    <xsd:element name="rentalDuration" type="xsd:int"/>
+                    <xsd:element name="rentalRate" type="xsd:string"/>
+                    <xsd:element name="length" type="xsd:int" minOccurs="0" nillable="true"/>
+                    <xsd:element name="replacementCost" type="xsd:string"/>
+                    <xsd:element name="rating" type="xsd:string" minOccurs="0" nillable="true"/>
+                    <xsd:element name="lastUpdate" type="xsd:dateTime"/>
+                </xsd:sequence>
+            </xsd:complexType>
+
+            <xsd:element name="ListFilmsResponse">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="data" type="tns:Film" minOccurs="0" maxOccurs="unbounded"/>
+                        <xsd:element name="meta" type="tns:PaginationMeta"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <xsd:element name="FilmResponse" type="tns:Film"/>
+
+            <xsd:element name="CreateFilmRequest">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="title" type="xsd:string"/>
+                        <xsd:element name="description" type="xsd:string" minOccurs="0"/>
+                        <xsd:element name="releaseYear" type="xsd:int" minOccurs="0"/>
+                        <xsd:element name="languageId" type="xsd:int"/>
+                        <xsd:element name="originalLanguageId" type="xsd:int" minOccurs="0"/>
+                        <xsd:element name="rentalDuration" type="xsd:int" minOccurs="0"/>
+                        <xsd:element name="rentalRate" type="xsd:string" minOccurs="0"/>
+                        <xsd:element name="length" type="xsd:int" minOccurs="0"/>
+                        <xsd:element name="replacementCost" type="xsd:string" minOccurs="0"/>
+                        <xsd:element name="rating" type="xsd:string" minOccurs="0"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <xsd:element name="UpdateFilmRequest">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="id" type="xsd:int"/>
+                        <xsd:element name="title" type="xsd:string" minOccurs="0"/>
+                        <xsd:element name="description" type="xsd:string" minOccurs="0"/>
+                        <xsd:element name="releaseYear" type="xsd:int" minOccurs="0"/>
+                        <xsd:element name="languageId" type="xsd:int" minOccurs="0"/>
+                        <xsd:element name="originalLanguageId" type="xsd:int" minOccurs="0"/>
+                        <xsd:element name="rentalDuration" type="xsd:int" minOccurs="0"/>
+                        <xsd:element name="rentalRate" type="xsd:string" minOccurs="0"/>
+                        <xsd:element name="length" type="xsd:int" minOccurs="0"/>
+                        <xsd:element name="replacementCost" type="xsd:string" minOccurs="0"/>
+                        <xsd:element name="rating" type="xsd:string" minOccurs="0"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <xsd:element name="ListFilmsRequest">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="page" type="xsd:int" minOccurs="0"/>
+                        <xsd:element name="limit" type="xsd:int" minOccurs="0"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="GetFilmRequest">
+                <xsd:complexType>
+                    <xsd:sequence><xsd:element name="id" type="xsd:int"/></xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="DeleteFilmRequest">
+                <xsd:complexType>
+                    <xsd:sequence><xsd:element name="id" type="xsd:int"/></xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <!-- ================= Actor ================= -->
+            <xsd:complexType name="Actor">
+                <xsd:sequence>
+                    <xsd:element name="id" type="xsd:int"/>
+                    <xsd:element name="firstName" type="xsd:string"/>
+                    <xsd:element name="lastName" type="xsd:string"/>
+                    <xsd:element name="lastUpdate" type="xsd:dateTime"/>
+                </xsd:sequence>
+            </xsd:complexType>
+
+            <xsd:element name="ListActorsResponse">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="data" type="tns:Actor" minOccurs="0" maxOccurs="unbounded"/>
+                        <xsd:element name="meta" type="tns:PaginationMeta"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <xsd:element name="ActorResponse" type="tns:Actor"/>
+
+            <xsd:element name="CreateActorRequest">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="firstName" type="xsd:string"/>
+                        <xsd:element name="lastName" type="xsd:string"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <xsd:element name="UpdateActorRequest">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="id" type="xsd:int"/>
+                        <xsd:element name="firstName" type="xsd:string" minOccurs="0"/>
+                        <xsd:element name="lastName" type="xsd:string" minOccurs="0"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <xsd:element name="ListActorsRequest">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="page" type="xsd:int" minOccurs="0"/>
+                        <xsd:element name="limit" type="xsd:int" minOccurs="0"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="GetActorRequest">
+                <xsd:complexType>
+                    <xsd:sequence><xsd:element name="id" type="xsd:int"/></xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="DeleteActorRequest">
+                <xsd:complexType>
+                    <xsd:sequence><xsd:element name="id" type="xsd:int"/></xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <!-- ================= Category ================= -->
+            <xsd:complexType name="Category">
+                <xsd:sequence>
+                    <xsd:element name="id" type="xsd:int"/>
+                    <xsd:element name="name" type="xsd:string"/>
+                    <xsd:element name="lastUpdate" type="xsd:dateTime"/>
+                </xsd:sequence>
+            </xsd:complexType>
+
+            <xsd:element name="ListCategoriesResponse">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="data" type="tns:Category" minOccurs="0" maxOccurs="unbounded"/>
+                        <xsd:element name="meta" type="tns:PaginationMeta"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <xsd:element name="CategoryResponse" type="tns:Category"/>
+
+            <xsd:element name="CreateCategoryRequest">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="name" type="xsd:string"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <xsd:element name="UpdateCategoryRequest">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="id" type="xsd:int"/>
+                        <xsd:element name="name" type="xsd:string" minOccurs="0"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <xsd:element name="ListCategoriesRequest">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="page" type="xsd:int" minOccurs="0"/>
+                        <xsd:element name="limit" type="xsd:int" minOccurs="0"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="GetCategoryRequest">
+                <xsd:complexType>
+                    <xsd:sequence><xsd:element name="id" type="xsd:int"/></xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="DeleteCategoryRequest">
+                <xsd:complexType>
+                    <xsd:sequence><xsd:element name="id" type="xsd:int"/></xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <!-- ================= Language ================= -->
+            <xsd:complexType name="Language">
+                <xsd:sequence>
+                    <xsd:element name="id" type="xsd:int"/>
+                    <xsd:element name="name" type="xsd:string"/>
+                    <xsd:element name="lastUpdate" type="xsd:dateTime"/>
+                </xsd:sequence>
+            </xsd:complexType>
+
+            <xsd:element name="ListLanguagesResponse">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="data" type="tns:Language" minOccurs="0" maxOccurs="unbounded"/>
+                        <xsd:element name="meta" type="tns:PaginationMeta"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <xsd:element name="LanguageResponse" type="tns:Language"/>
+
+            <xsd:element name="CreateLanguageRequest">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="name" type="xsd:string"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <xsd:element name="UpdateLanguageRequest">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="id" type="xsd:int"/>
+                        <xsd:element name="name" type="xsd:string" minOccurs="0"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <xsd:element name="ListLanguagesRequest">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="page" type="xsd:int" minOccurs="0"/>
+                        <xsd:element name="limit" type="xsd:int" minOccurs="0"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="GetLanguageRequest">
+                <xsd:complexType>
+                    <xsd:sequence><xsd:element name="id" type="xsd:int"/></xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="DeleteLanguageRequest">
+                <xsd:complexType>
+                    <xsd:sequence><xsd:element name="id" type="xsd:int"/></xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <!-- ================= Inventory ================= -->
+            <xsd:complexType name="Inventory">
+                <xsd:sequence>
+                    <xsd:element name="id" type="xsd:int"/>
+                    <xsd:element name="filmId" type="xsd:int"/>
+                    <xsd:element name="storeId" type="xsd:int"/>
+                    <xsd:element name="lastUpdate" type="xsd:dateTime"/>
+                </xsd:sequence>
+            </xsd:complexType>
+
+            <xsd:element name="ListInventoriesResponse">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="data" type="tns:Inventory" minOccurs="0" maxOccurs="unbounded"/>
+                        <xsd:element name="meta" type="tns:PaginationMeta"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <xsd:element name="InventoryResponse" type="tns:Inventory"/>
+
+            <xsd:element name="CreateInventoryRequest">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="filmId" type="xsd:int"/>
+                        <xsd:element name="storeId" type="xsd:int"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <xsd:element name="UpdateInventoryRequest">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="id" type="xsd:int"/>
+                        <xsd:element name="filmId" type="xsd:int" minOccurs="0"/>
+                        <xsd:element name="storeId" type="xsd:int" minOccurs="0"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <xsd:element name="ListInventoriesRequest">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="page" type="xsd:int" minOccurs="0"/>
+                        <xsd:element name="limit" type="xsd:int" minOccurs="0"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="GetInventoryRequest">
+                <xsd:complexType>
+                    <xsd:sequence><xsd:element name="id" type="xsd:int"/></xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="DeleteInventoryRequest">
+                <xsd:complexType>
+                    <xsd:sequence><xsd:element name="id" type="xsd:int"/></xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+        </xsd:schema>
+    </types>
+
+    <!-- ================= Messages ================= -->
+    <message name="DeleteResponseMessage"><part name="parameters" element="tns:DeleteResponse"/></message>
+
+    <message name="ListFilmsRequestMessage"><part name="parameters" element="tns:ListFilmsRequest"/></message>
+    <message name="GetFilmRequestMessage"><part name="parameters" element="tns:GetFilmRequest"/></message>
+    <message name="DeleteFilmRequestMessage"><part name="parameters" element="tns:DeleteFilmRequest"/></message>
+    <message name="ListFilmsResponseMessage"><part name="parameters" element="tns:ListFilmsResponse"/></message>
+    <message name="FilmResponseMessage"><part name="parameters" element="tns:FilmResponse"/></message>
+    <message name="CreateFilmRequestMessage"><part name="parameters" element="tns:CreateFilmRequest"/></message>
+    <message name="UpdateFilmRequestMessage"><part name="parameters" element="tns:UpdateFilmRequest"/></message>
+
+    <message name="ListActorsRequestMessage"><part name="parameters" element="tns:ListActorsRequest"/></message>
+    <message name="GetActorRequestMessage"><part name="parameters" element="tns:GetActorRequest"/></message>
+    <message name="DeleteActorRequestMessage"><part name="parameters" element="tns:DeleteActorRequest"/></message>
+    <message name="ListActorsResponseMessage"><part name="parameters" element="tns:ListActorsResponse"/></message>
+    <message name="ActorResponseMessage"><part name="parameters" element="tns:ActorResponse"/></message>
+    <message name="CreateActorRequestMessage"><part name="parameters" element="tns:CreateActorRequest"/></message>
+    <message name="UpdateActorRequestMessage"><part name="parameters" element="tns:UpdateActorRequest"/></message>
+
+    <message name="ListCategoriesRequestMessage"><part name="parameters" element="tns:ListCategoriesRequest"/></message>
+    <message name="GetCategoryRequestMessage"><part name="parameters" element="tns:GetCategoryRequest"/></message>
+    <message name="DeleteCategoryRequestMessage"><part name="parameters" element="tns:DeleteCategoryRequest"/></message>
+    <message name="ListCategoriesResponseMessage"><part name="parameters" element="tns:ListCategoriesResponse"/></message>
+    <message name="CategoryResponseMessage"><part name="parameters" element="tns:CategoryResponse"/></message>
+    <message name="CreateCategoryRequestMessage"><part name="parameters" element="tns:CreateCategoryRequest"/></message>
+    <message name="UpdateCategoryRequestMessage"><part name="parameters" element="tns:UpdateCategoryRequest"/></message>
+
+    <message name="ListLanguagesRequestMessage"><part name="parameters" element="tns:ListLanguagesRequest"/></message>
+    <message name="GetLanguageRequestMessage"><part name="parameters" element="tns:GetLanguageRequest"/></message>
+    <message name="DeleteLanguageRequestMessage"><part name="parameters" element="tns:DeleteLanguageRequest"/></message>
+    <message name="ListLanguagesResponseMessage"><part name="parameters" element="tns:ListLanguagesResponse"/></message>
+    <message name="LanguageResponseMessage"><part name="parameters" element="tns:LanguageResponse"/></message>
+    <message name="CreateLanguageRequestMessage"><part name="parameters" element="tns:CreateLanguageRequest"/></message>
+    <message name="UpdateLanguageRequestMessage"><part name="parameters" element="tns:UpdateLanguageRequest"/></message>
+
+    <message name="ListInventoriesRequestMessage"><part name="parameters" element="tns:ListInventoriesRequest"/></message>
+    <message name="GetInventoryRequestMessage"><part name="parameters" element="tns:GetInventoryRequest"/></message>
+    <message name="DeleteInventoryRequestMessage"><part name="parameters" element="tns:DeleteInventoryRequest"/></message>
+    <message name="ListInventoriesResponseMessage"><part name="parameters" element="tns:ListInventoriesResponse"/></message>
+    <message name="InventoryResponseMessage"><part name="parameters" element="tns:InventoryResponse"/></message>
+    <message name="CreateInventoryRequestMessage"><part name="parameters" element="tns:CreateInventoryRequest"/></message>
+    <message name="UpdateInventoryRequestMessage"><part name="parameters" element="tns:UpdateInventoryRequest"/></message>
+
+    <!-- ================= Port Type ================= -->
+    <portType name="InventoryPortType">
+        <operation name="ListFilms">
+            <input message="tns:ListFilmsRequestMessage"/>
+            <output message="tns:ListFilmsResponseMessage"/>
+        </operation>
+        <operation name="GetFilm">
+            <input message="tns:GetFilmRequestMessage"/>
+            <output message="tns:FilmResponseMessage"/>
+        </operation>
+        <operation name="CreateFilm">
+            <input message="tns:CreateFilmRequestMessage"/>
+            <output message="tns:FilmResponseMessage"/>
+        </operation>
+        <operation name="UpdateFilm">
+            <input message="tns:UpdateFilmRequestMessage"/>
+            <output message="tns:FilmResponseMessage"/>
+        </operation>
+        <operation name="DeleteFilm">
+            <input message="tns:DeleteFilmRequestMessage"/>
+            <output message="tns:DeleteResponseMessage"/>
+        </operation>
+
+        <operation name="ListActors">
+            <input message="tns:ListActorsRequestMessage"/>
+            <output message="tns:ListActorsResponseMessage"/>
+        </operation>
+        <operation name="GetActor">
+            <input message="tns:GetActorRequestMessage"/>
+            <output message="tns:ActorResponseMessage"/>
+        </operation>
+        <operation name="CreateActor">
+            <input message="tns:CreateActorRequestMessage"/>
+            <output message="tns:ActorResponseMessage"/>
+        </operation>
+        <operation name="UpdateActor">
+            <input message="tns:UpdateActorRequestMessage"/>
+            <output message="tns:ActorResponseMessage"/>
+        </operation>
+        <operation name="DeleteActor">
+            <input message="tns:DeleteActorRequestMessage"/>
+            <output message="tns:DeleteResponseMessage"/>
+        </operation>
+
+        <operation name="ListCategories">
+            <input message="tns:ListCategoriesRequestMessage"/>
+            <output message="tns:ListCategoriesResponseMessage"/>
+        </operation>
+        <operation name="GetCategory">
+            <input message="tns:GetCategoryRequestMessage"/>
+            <output message="tns:CategoryResponseMessage"/>
+        </operation>
+        <operation name="CreateCategory">
+            <input message="tns:CreateCategoryRequestMessage"/>
+            <output message="tns:CategoryResponseMessage"/>
+        </operation>
+        <operation name="UpdateCategory">
+            <input message="tns:UpdateCategoryRequestMessage"/>
+            <output message="tns:CategoryResponseMessage"/>
+        </operation>
+        <operation name="DeleteCategory">
+            <input message="tns:DeleteCategoryRequestMessage"/>
+            <output message="tns:DeleteResponseMessage"/>
+        </operation>
+
+        <operation name="ListLanguages">
+            <input message="tns:ListLanguagesRequestMessage"/>
+            <output message="tns:ListLanguagesResponseMessage"/>
+        </operation>
+        <operation name="GetLanguage">
+            <input message="tns:GetLanguageRequestMessage"/>
+            <output message="tns:LanguageResponseMessage"/>
+        </operation>
+        <operation name="CreateLanguage">
+            <input message="tns:CreateLanguageRequestMessage"/>
+            <output message="tns:LanguageResponseMessage"/>
+        </operation>
+        <operation name="UpdateLanguage">
+            <input message="tns:UpdateLanguageRequestMessage"/>
+            <output message="tns:LanguageResponseMessage"/>
+        </operation>
+        <operation name="DeleteLanguage">
+            <input message="tns:DeleteLanguageRequestMessage"/>
+            <output message="tns:DeleteResponseMessage"/>
+        </operation>
+
+        <operation name="ListInventories">
+            <input message="tns:ListInventoriesRequestMessage"/>
+            <output message="tns:ListInventoriesResponseMessage"/>
+        </operation>
+        <operation name="GetInventory">
+            <input message="tns:GetInventoryRequestMessage"/>
+            <output message="tns:InventoryResponseMessage"/>
+        </operation>
+        <operation name="CreateInventory">
+            <input message="tns:CreateInventoryRequestMessage"/>
+            <output message="tns:InventoryResponseMessage"/>
+        </operation>
+        <operation name="UpdateInventory">
+            <input message="tns:UpdateInventoryRequestMessage"/>
+            <output message="tns:InventoryResponseMessage"/>
+        </operation>
+        <operation name="DeleteInventory">
+            <input message="tns:DeleteInventoryRequestMessage"/>
+            <output message="tns:DeleteResponseMessage"/>
+        </operation>
+    </portType>
+
+    <!-- ================= Binding ================= -->
+    <binding name="InventoryBinding" type="tns:InventoryPortType">
+        <soap:binding transport="http://schemas.xmlsoap.org/soap/http" style="document"/>
+
+        <operation name="ListFilms"><soap:operation soapAction="http://inventory-service.sakila/wsdl/ListFilms"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+        <operation name="GetFilm"><soap:operation soapAction="http://inventory-service.sakila/wsdl/GetFilm"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+        <operation name="CreateFilm"><soap:operation soapAction="http://inventory-service.sakila/wsdl/CreateFilm"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+        <operation name="UpdateFilm"><soap:operation soapAction="http://inventory-service.sakila/wsdl/UpdateFilm"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+        <operation name="DeleteFilm"><soap:operation soapAction="http://inventory-service.sakila/wsdl/DeleteFilm"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+
+        <operation name="ListActors"><soap:operation soapAction="http://inventory-service.sakila/wsdl/ListActors"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+        <operation name="GetActor"><soap:operation soapAction="http://inventory-service.sakila/wsdl/GetActor"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+        <operation name="CreateActor"><soap:operation soapAction="http://inventory-service.sakila/wsdl/CreateActor"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+        <operation name="UpdateActor"><soap:operation soapAction="http://inventory-service.sakila/wsdl/UpdateActor"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+        <operation name="DeleteActor"><soap:operation soapAction="http://inventory-service.sakila/wsdl/DeleteActor"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+
+        <operation name="ListCategories"><soap:operation soapAction="http://inventory-service.sakila/wsdl/ListCategories"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+        <operation name="GetCategory"><soap:operation soapAction="http://inventory-service.sakila/wsdl/GetCategory"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+        <operation name="CreateCategory"><soap:operation soapAction="http://inventory-service.sakila/wsdl/CreateCategory"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+        <operation name="UpdateCategory"><soap:operation soapAction="http://inventory-service.sakila/wsdl/UpdateCategory"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+        <operation name="DeleteCategory"><soap:operation soapAction="http://inventory-service.sakila/wsdl/DeleteCategory"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+
+        <operation name="ListLanguages"><soap:operation soapAction="http://inventory-service.sakila/wsdl/ListLanguages"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+        <operation name="GetLanguage"><soap:operation soapAction="http://inventory-service.sakila/wsdl/GetLanguage"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+        <operation name="CreateLanguage"><soap:operation soapAction="http://inventory-service.sakila/wsdl/CreateLanguage"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+        <operation name="UpdateLanguage"><soap:operation soapAction="http://inventory-service.sakila/wsdl/UpdateLanguage"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+        <operation name="DeleteLanguage"><soap:operation soapAction="http://inventory-service.sakila/wsdl/DeleteLanguage"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+
+        <operation name="ListInventories"><soap:operation soapAction="http://inventory-service.sakila/wsdl/ListInventories"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+        <operation name="GetInventory"><soap:operation soapAction="http://inventory-service.sakila/wsdl/GetInventory"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+        <operation name="CreateInventory"><soap:operation soapAction="http://inventory-service.sakila/wsdl/CreateInventory"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+        <operation name="UpdateInventory"><soap:operation soapAction="http://inventory-service.sakila/wsdl/UpdateInventory"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+        <operation name="DeleteInventory"><soap:operation soapAction="http://inventory-service.sakila/wsdl/DeleteInventory"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+    </binding>
+
+    <!-- ================= Service ================= -->
+    <service name="InventoryService">
+        <port name="InventoryPort" binding="tns:InventoryBinding">
+            <soap:address location="http://localhost:3003/soap"/>
+        </port>
+    </service>
+
+</definitions>
