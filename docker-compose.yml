@@ -181,8 +181,6 @@ services:
         condition: service_healthy
       inventory-service:
         condition: service_healthy
-      reporting-service:
-        condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
